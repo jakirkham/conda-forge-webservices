@@ -3,11 +3,15 @@ import os
 from .utils import tmp_directory
 
 
+def get_feedstock_name(repo_name):
+    return repo_name[:-len("-feedstock")]
+
+
 def update_feedstock(org_name, repo_name):
     if not repo_name.endswith("-feedstock"):
         return
 
-    name = repo_name[:-len("-feedstock")]
+    name = get_feedstock_name(repo_name)
 
     with tmp_directory() as tmp_dir:
         feedstocks_url = (
