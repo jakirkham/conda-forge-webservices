@@ -135,6 +135,48 @@ def update_feedstock(org_name, repo_name):
             feedstocks_repo.remote().push()
 
 
+def remove_feedstock(org_name, repo_name):
+    name = repo_name[:-len("-feedstock")]
+
+    with tmp_directory() as tmp_dir:
+        feedstocks_url = (
+            "https://{}@github.com/conda-forge/feedstocks.git"
+            "".format(os.environ["FEEDSTOCKS_GH_TOKEN"])
+        )
+        feedstocks_repo = git.Repo.clone_from(
+            feedstocks_url,
+            tmp_dir
+        )
+
+        # Get the submodule
+        feedstock_submodule = feedstocks_repo.create_submodule(
+            name=name,
+            path=os.path.join("feedstocks", name),
+            url="https://github.com/{0}/{1}.git".format(org_name, repo_name),
+            branch="master"
+        )
+        # Hack needed if the submodule already exists.
+        # Borrows the fix accepted upstream.
+        # PR: https://github.com/gitpython-developers/GitPython/pull/679
+        feedstock_submodule._name = name
+
+        # Remove the feedstocks submodule
+        feedstock_submodule.remove()
+
+        # Submit changes
+        if feedstocks_repo.is_dirty(working_tree=False, untracked_files=True):
+            author = git.Actor(
+                "conda-forge-coordinator", "conda.forge.coordinator@gmail.com"
+            )
+            feedstocks_repo.index.commit(
+                "Remove the {0} feedstock.".format(name),
+                author=author,
+                committer=author
+            )
+            feedstocks_repo.remote().pull(rebase=True)
+            feedstocks_repo.remote().push()
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
