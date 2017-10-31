@@ -155,14 +155,16 @@ class UpdateFeedstockHookHandler(tornado.web.RequestHandler):
 
         if event == 'ping':
             self.write('pong')
-        elif event == 'push':
+        elif event in ['push', 'repository']:
             body = tornado.escape.json_decode(self.request.body)
             repo_name = body['repository']['name']
             owner = body['repository']['owner']['login']
-            ref = body['ref']
             # Only do anything if we are working with conda-forge, and a push to master.
-            if owner == 'conda-forge' and ref == "refs/heads/master":
-                feedstocks_service.handle_feedstock_event(owner, repo_name)
+            if owner == 'conda-forge':
+                if event == 'push' and body['ref'] == 'refs/heads/master':
+                    feedstocks_service.handle_feedstock_event(owner, repo_name, event)
+                if event == 'repository':
+                    feedstocks_service.handle_feedstock_event(owner, repo_name, event)
             print_rate_limiting_info()
         else:
             print('Unhandled event "{}".'.format(event))
