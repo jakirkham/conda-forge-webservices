@@ -6,11 +6,15 @@ from collections import namedtuple
 from .utils import tmp_directory
 
 
-def handle_feedstock_event(org_name, repo_name):
-    if repo_name in ["conda-forge.github.io", "staged-recipes"]:
+def handle_feedstock_event(org_name, repo_name, event):
+    if event == "push" and repo_name in ["conda-forge.github.io", "staged-recipes"]:
         update_listing()
     elif repo_name.endswith("-feedstock"):
-        update_feedstock(org_name, repo_name)
+        if event == "push":
+            update_feedstock(org_name, repo_name)
+        elif event == "repository":
+            remove_feedstock(org_name, repo_name)
+            update_listing()
 
 
 def update_listing():
